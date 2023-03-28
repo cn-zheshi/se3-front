@@ -1,0 +1,7 @@
+::v-deep #searcher-main-input {
+  width: calc(0.6 * (100% - var(--header-logo-width)));
+  height: calc(0.75 * var(--el-header-height));
+  margin: calc(0.1 * var(--el-header-height)) 5%;
+  float: right;
+  border-bottom: none;
+}

@@ -1,0 +1,79 @@
+// 将旧 jenkins file 的 all 步骤拆开, 以更好地支持持续集成和持续交付
+pipeline {
+    // 在任意 agent 上运行
+    agent any
+
+    // 环境变量, 定义项目的 id 和 branch
+    environment {
+        project = "191250045/lmcc-frontend-mirror"
+        branch = "master"
+    }
+
+    // 定义 gitlab 连接和 builds
+    options {
+        gitLabConnection("lmcc")
+        gitlabBuilds(builds: ['begin', 'prepare', 'build','deploy', 'end'])
+    }
+
+    stages {
+        // 开始, 打印开始信息
+        stage('begin') {
+            steps {
+                gitlabCommitStatus(name: 'begin', builds: [
+                    [projectId: "${env.project}", revisionHash: "${env.branch}"]
+                ]){
+                    echo "== Start =="
+                    echo "cur dir:"
+                    sh 'pwd'
+                }
+            }
+        }
+
+        // 准备阶段: 清理旧构建
+        stage('prepare') {
+            steps {
+                gitlabCommitStatus(name: 'prepare', builds: [
+                    [projectId: "${env.project}", revisionHash: "${env.branch}"]
+                ]){
+                    git credentialsId: 'e81c1ce7-3228-413f-b702-02d111f54a17', url: 'git@git.nju.edu.cn:191250045/lmcc-frontend-mirror.git'
+                    echo "project ls:"
+                    sh 'ls -al'
+                    sh "make -f scripts/Makefile clean"
+                }
+            }
+        }
+
+        // 构建阶段, 构建本次结果
+        stage('build') {
+            steps {
+                gitlabCommitStatus(name: 'build', builds: [
+                    [projectId: "${env.project}", revisionHash: "${env.branch}"]
+                ]){
+                    sh "make -f scripts/Makefile build"
+                }
+            }
+        }
+
+        // 部署阶段
+        stage('deploy') {
+             steps {
+                gitlabCommitStatus(name: 'deploy', builds: [
+                    [projectId: "${env.project}", revisionHash: "${env.branch}"]
+                ]){
+                     sh "make -f scripts/Makefile deploy"
+                 }
+             }
+        }
+
+        // 结束阶段
+        stage('end') {
+            steps {
+                gitlabCommitStatus(name: 'end', builds: [
+                    [projectId: "${env.project}", revisionHash: "${env.branch}"]
+                ]){
+                    echo '== End =='
+                }
+            }
+        }
+    }
+}
